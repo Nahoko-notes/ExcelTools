@@ -31,14 +31,26 @@ Sub CreateUnifiedSummary_FromSingleBook()
 
     outRow = tgtSheet.Cells(tgtSheet.Rows.Count, 1).End(xlUp).Row + 1
 
-    ' データ抽出開始
     rowIndex = 2
-    Do While Application.CountA(srcSheet.Rows(rowIndex)) > 0
+    Do While rowIndex <= srcSheet.Cells(srcSheet.Rows.Count, "F").End(xlUp).Row
+
         level = -1
-        Dim name As String, fullName As String, sheetName As String
-        name = ""
-        fullName = ""
-        sheetName = srcSheet.Name
+        Dim name As String: name = ""
+        Dim fullName As String: fullName = ""
+        Dim sheetName As String: sheetName = srcSheet.Name
+
+        ' 空行チェック（工事名称が全て空ならスキップ）
+        Dim isEmpty As Boolean: isEmpty = True
+        For i = 0 To 6
+            If Trim(srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value) <> "" Then
+                isEmpty = False
+                Exit For
+            End If
+        Next i
+        If isEmpty Then
+            rowIndex = rowIndex + 1
+            GoTo SkipRow
+        End If
 
         ' 工事名称の列から階層判断
         For i = 0 To 6
@@ -47,6 +59,7 @@ Sub CreateUnifiedSummary_FromSingleBook()
                 name = srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value
                 hierarchy(level) = name
                 cellRef(level) = colList(i) & rowIndex
+                ' 下位階層をリセット
                 Dim j As Long
                 For j = level + 1 To 7
                     hierarchy(j) = ""
@@ -56,25 +69,33 @@ Sub CreateUnifiedSummary_FromSingleBook()
             End If
         Next i
 
+        ' 階層表記生成
         If level > 0 Then
             fullName = ""
             For j = 1 To level - 1
                 If cellRef(j) <> "" Then fullName = fullName & cellRef(j) & "＞"
             Next j
-            fullName = fullName & name
+            If fullName <> "" Then
+                fullName = fullName & name
+            Else
+                fullName = name  ' 最上位の場合はそのまま
+            End If
 
             ' 出力
-            tgtSheet.Cells(outRow, 1).Value = sheetName
-            tgtSheet.Cells(outRow, 2).Value = fullName
-            tgtSheet.Cells(outRow, 3).Value = name
-            tgtSheet.Cells(outRow, 4).Value = srcSheet.Cells(rowIndex, "Q").Value
-            tgtSheet.Cells(outRow, 5).Value = srcSheet.Cells(rowIndex, "R").Value
-            tgtSheet.Cells(outRow, 6).Value = srcSheet.Cells(rowIndex, "S").Value
-            tgtSheet.Cells(outRow, 7).Value = srcSheet.Cells(rowIndex, "T").Value
-            tgtSheet.Cells(outRow, 8).Value = srcSheet.Cells(rowIndex, "U").Value
+            With tgtSheet
+                .Cells(outRow, 1).Value = sheetName
+                .Cells(outRow, 2).Value = fullName
+                .Cells(outRow, 3).Value = name
+                .Cells(outRow, 4).Value = srcSheet.Cells(rowIndex, "Q").Value
+                .Cells(outRow, 5).Value = srcSheet.Cells(rowIndex, "R").Value
+                .Cells(outRow, 6).Value = srcSheet.Cells(rowIndex, "S").Value
+                .Cells(outRow, 7).Value = srcSheet.Cells(rowIndex, "T").Value
+                .Cells(outRow, 8).Value = srcSheet.Cells(rowIndex, "U").Value
+            End With
             outRow = outRow + 1
         End If
 
+SkipRow:
         rowIndex = rowIndex + 1
     Loop
 
