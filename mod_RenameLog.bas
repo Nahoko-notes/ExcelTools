@@ -8,7 +8,7 @@ Sub RenameLog()
     
     ' NG文字と置換ルールの定義
     Dim ngChars As Variant, replaceWith As Variant
-    ngChars = Array(Chr(34), "/", ":", "*", "?", "\"" , "<", ">", "|", "　", " ", vbLf, vbCr, Chr(39), Chr(160))
+    ngChars = Array("/", ":", "*", "?", Chr(34), "<", ">", "|", "　", " ", vbLf, vbCr, Chr(39), Chr(160))
     replaceWith = Array("", "", "", "", "", "", "", "", "", "_", "_", "", "", "", "")
 
     Set fso = CreateObject("Scripting.FileSystemObject")
