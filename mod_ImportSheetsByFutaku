@@ -1,0 +1,72 @@
+option explicit
+Sub ImportSheetsByFutaku()
+    Dim defSheet As Worksheet
+    Set defSheet = ThisWorkbook.Sheets("仕様_要件定義")
+
+    Dim targetPaths As Range, pathCell As Range
+    Dim futakuList As Range, futakuCell As Range
+    Dim futakuNumbers() As String
+    Dim matchFound As Boolean
+    Dim futakuToUse As String
+    Dim i As Long
+
+    ' 付託No.配列に格納（M5〜M10）
+    Set futakuList = defSheet.Range("M5:M10")
+    ReDim futakuNumbers(1 To futakuList.Count)
+    i = 1
+    For Each futakuCell In futakuList
+        If Len(Trim(futakuCell.Value)) > 0 Then
+            futakuNumbers(i) = Trim(futakuCell.Value)
+            i = i + 1
+        End If
+    Next futakuCell
+
+    ' L5〜L10 のファイル名リストを取得
+    Set targetPaths = defSheet.Range("L5:L10")
+
+    Dim wbSource As Workbook
+    Dim sourcePath As String
+    Dim futakuMatch As String
+    Dim wsName As String
+
+    Application.ScreenUpdating = False
+
+    For Each pathCell In targetPaths
+        sourcePath = Trim(pathCell.Value)
+        If Len(sourcePath) = 0 Then GoTo NextFile
+
+        ' 付託No.のいずれかが含まれているかチェック
+        matchFound = False
+        For i = LBound(futakuNumbers) To UBound(futakuNumbers)
+            If InStr(sourcePath, futakuNumbers(i)) > 0 Then
+                futakuMatch = futakuNumbers(i)
+                matchFound = True
+                Exit For
+            End If
+        Next i
+
+        If matchFound = False Then
+            MsgBox "付託番号が一致しないファイルがあります：" & vbCrLf & sourcePath, vbExclamation
+            GoTo NextFile
+        End If
+
+        ' 一致したらブックを開いて先頭シートをコピー
+        Set wbSource = Workbooks.Open(Filename:=sourcePath, ReadOnly:=True)
+
+        ' シート名が既にあれば削除
+        On Error Resume Next
+        ThisWorkbook.Sheets(futakuMatch).Delete
+        On Error GoTo 0
+
+        ' シートコピー（先頭シートのみ）
+        wbSource.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+        ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count).Name = futakuMatch
+
+        wbSource.Close SaveChanges:=False
+
+NextFile:
+    Next pathCell
+
+    Application.ScreenUpdating = True
+    MsgBox "シート読み込み完了しました！", vbInformation
+End Sub
