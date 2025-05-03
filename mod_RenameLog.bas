@@ -1,3 +1,4 @@
+option explicit
 Sub RenameLog()
     Dim fileNames As Variant
     Dim i As Long, j As Long
@@ -16,10 +17,12 @@ Sub RenameLog()
     ' ファイル選択
     fileNames = Application.GetOpenFilename("Excelファイル (*.xls*), *.xls*", , "リネーム対象のファイルを選択（複数OK）", , True)
 
-    ' キャンセル時
-    If VarType(fileNames) = vbBoolean And fileNames = False Then
-        MsgBox "キャンセルされました", vbExclamation
-        Exit Sub
+    ' キャンセル時の安全なチェック
+    If Not IsArray(fileNames) Then
+        If fileNames = False Then
+            MsgBox "キャンセルされました", vbExclamation
+            Exit Sub
+        End If
     End If
 
     ' ログ用シートを用意（無ければ作成）
