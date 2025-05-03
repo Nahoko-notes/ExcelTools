@@ -28,6 +28,8 @@ Sub ImportSheetsByFutaku()
     Dim sourcePath As String
     Dim tempBook As Workbook
     Dim newSheet As Worksheet
+    Dim sht As Worksheet
+    Dim sourceSheet As Worksheet
 
     Application.ScreenUpdating = False
 
@@ -53,16 +55,24 @@ Sub ImportSheetsByFutaku()
         ' ブックを開く（ReadOnly）
         Set wbSource = Workbooks.Open(Filename:=sourcePath, ReadOnly:=True)
 
-        ' シートが存在しなければスキップ
-        If wbSource.Sheets.Count = 0 Then
-            MsgBox "シートが存在しないファイルです：" & vbCrLf & sourcePath, vbExclamation
+        ' 表示されている通常シートのみを対象にする
+        Set sourceSheet = Nothing
+        For Each sht In wbSource.Worksheets
+            If sht.Visible = xlSheetVisible And sht.Type = xlWorksheet Then
+                Set sourceSheet = sht
+                Exit For
+            End If
+        Next sht
+
+        If sourceSheet Is Nothing Then
+            MsgBox "コピー可能な表示シートが見つかりません：" & vbCrLf & sourcePath, vbExclamation
             wbSource.Close SaveChanges:=False
             GoTo NextFile
         End If
 
-        ' 一時ブックを手動で作成して中継コピー（安心設計）
+        ' 中継ブックを作って、ちゃんと見えるシートをコピー
         Set tempBook = Workbooks.Add(xlWBATWorksheet)
-        wbSource.Sheets(1).Cells.Copy Destination:=tempBook.Sheets(1).Cells(1, 1)
+        sourceSheet.Cells.Copy Destination:=tempBook.Sheets(1).Cells(1, 1)
 
         ' 元ブックを閉じる
         wbSource.Close SaveChanges:=False
