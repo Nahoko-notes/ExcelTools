@@ -3,9 +3,10 @@ Sub RenameLog()
     Dim fileNames As Variant
     Dim i As Long, j As Long
     Dim oldPath As String, newPath As String
-    Dim fileNameOnly As String, folderPath As String
-    Dim logSheet As Worksheet
+    Dim fileNameOnly As String, newFileNameOnly As String, folderPath As String
+    Dim logSheet As Worksheet, defSheet As Worksheet
     Dim timeStamp As String
+    Dim cell As Range
 
     ' NG文字と置換先定義
     Dim ngChars As Variant
@@ -25,7 +26,7 @@ Sub RenameLog()
         End If
     End If
 
-    ' ログ用シートを用意（無ければ作成）
+    ' ログ用シート
     On Error Resume Next
     Set logSheet = ThisWorkbook.Sheets("リネームログ")
     If logSheet Is Nothing Then
@@ -35,6 +36,9 @@ Sub RenameLog()
     End If
     On Error GoTo 0
 
+    ' 要件定義シート
+    Set defSheet = ThisWorkbook.Sheets("仕様_要件定義")
+
     timeStamp = Format(Now, "yyyy/mm/dd HH:MM:SS")
 
     ' 複数ファイルループ
@@ -42,15 +46,14 @@ Sub RenameLog()
         oldPath = fileNames(i)
         folderPath = Left(oldPath, InStrRev(oldPath, "\"))
         fileNameOnly = Mid(oldPath, InStrRev(oldPath, "\") + 1)
-        newPath = fileNameOnly
+        newFileNameOnly = fileNameOnly ' 初期値としてセット
 
         ' NG文字置換
         For j = LBound(ngChars) To UBound(ngChars)
-            newPath = Replace(newPath, ngChars(j), replaceWith(j))
+            newFileNameOnly = Replace(newFileNameOnly, ngChars(j), replaceWith(j))
         Next j
 
-        ' 完全パスに
-        newPath = folderPath & newPath
+        newPath = folderPath & newFileNameOnly
 
         ' 同名ファイルの存在チェック
         If Dir(newPath) <> "" Then
@@ -58,15 +61,23 @@ Sub RenameLog()
         Else
             Name oldPath As newPath
 
-            ' ログ書き込み
+            ' リネームログ書き込み
             With logSheet
                 .Cells(.Rows.Count, 1).End(xlUp).Offset(1, 0).Value = fileNameOnly
-                .Cells(.Rows.Count, 1).End(xlUp).Offset(0, 1).Value = Mid(newPath, InStrRev(newPath, "\") + 1)
+                .Cells(.Rows.Count, 1).End(xlUp).Offset(0, 1).Value = newFileNameOnly
                 .Cells(.Rows.Count, 1).End(xlUp).Offset(0, 2).Value = newPath
                 .Cells(.Rows.Count, 1).End(xlUp).Offset(0, 3).Value = timeStamp
             End With
+
+            ' 要件定義シートのブック名欄を更新（L5〜L10想定）
+            For Each cell In defSheet.Range("L5:L10")
+                If Trim(cell.Value) = fileNameOnly Then
+                    cell.Value = newFileNameOnly
+                    Exit For
+                End If
+            Next cell
         End If
     Next i
 
-    MsgBox "リネーム完了しました！", vbInformation
+    MsgBox "リネーム＋定義欄更新 完了しました！", vbInformation
 End Sub
