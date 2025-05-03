@@ -1,3 +1,4 @@
+option explicit
 Sub CreateUnifiedSummary_FromSingleBook()
 
     Dim srcBook As Workbook
