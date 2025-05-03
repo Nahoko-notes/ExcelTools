@@ -1,0 +1,82 @@
+Sub CreateUnifiedSummary_FromSingleBook()
+
+    Dim srcBook As Workbook
+    Dim srcSheet As Worksheet
+    Dim tgtSheet As Worksheet
+    Dim filePath As Variant
+    Dim rowIndex As Long, outRow As Long
+    Dim hierarchy(1 To 7) As String
+    Dim cellRef(1 To 7) As String
+    Dim i As Long, level As Long
+    Dim colList As Variant: colList = Array("F", "G", "H", "I", "J", "K", "L")
+
+    ' ファイル選択
+    filePath = Application.GetOpenFilename("Excelファイル (*.xls*), *.xls*")
+    If filePath = False Then Exit Sub
+
+    ' ブック開く（読み取り専用で）
+    Set srcBook = Workbooks.Open(filePath, ReadOnly:=True)
+    Set srcSheet = srcBook.Sheets(1)  ' 先頭シート
+
+    ' 出力先シート準備
+    On Error Resume Next
+    Set tgtSheet = ThisWorkbook.Sheets("全体統合一覧")
+    If tgtSheet Is Nothing Then
+        Set tgtSheet = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
+        tgtSheet.Name = "全体統合一覧"
+        tgtSheet.Range("A1:H1").Value = Array("元シート名", "階層表記", "工事名称", "単位", "数量", "単価", "金額", "摘要")
+    End If
+    On Error GoTo 0
+
+    outRow = tgtSheet.Cells(tgtSheet.Rows.Count, 1).End(xlUp).Row + 1
+
+    ' データ抽出開始
+    rowIndex = 2
+    Do While Application.CountA(srcSheet.Rows(rowIndex)) > 0
+        level = -1
+        Dim name As String, fullName As String, sheetName As String
+        name = ""
+        fullName = ""
+        sheetName = srcSheet.Name
+
+        ' 工事名称の列から階層判断
+        For i = 0 To 6
+            If Trim(srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value) <> "" Then
+                level = i + 1
+                name = srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value
+                hierarchy(level) = name
+                cellRef(level) = colList(i) & rowIndex
+                Dim j As Long
+                For j = level + 1 To 7
+                    hierarchy(j) = ""
+                    cellRef(j) = ""
+                Next j
+                Exit For
+            End If
+        Next i
+
+        If level > 0 Then
+            fullName = ""
+            For j = 1 To level - 1
+                If cellRef(j) <> "" Then fullName = fullName & cellRef(j) & "＞"
+            Next j
+            fullName = fullName & name
+
+            ' 出力
+            tgtSheet.Cells(outRow, 1).Value = sheetName
+            tgtSheet.Cells(outRow, 2).Value = fullName
+            tgtSheet.Cells(outRow, 3).Value = name
+            tgtSheet.Cells(outRow, 4).Value = srcSheet.Cells(rowIndex, "Q").Value
+            tgtSheet.Cells(outRow, 5).Value = srcSheet.Cells(rowIndex, "R").Value
+            tgtSheet.Cells(outRow, 6).Value = srcSheet.Cells(rowIndex, "S").Value
+            tgtSheet.Cells(outRow, 7).Value = srcSheet.Cells(rowIndex, "T").Value
+            tgtSheet.Cells(outRow, 8).Value = srcSheet.Cells(rowIndex, "U").Value
+            outRow = outRow + 1
+        End If
+
+        rowIndex = rowIndex + 1
+    Loop
+
+    srcBook.Close False
+    MsgBox "統合完了！", vbInformation
+End Sub
