@@ -26,7 +26,8 @@ Sub ImportSheetsByFutaku()
 
     Dim wbSource As Workbook
     Dim sourcePath As String
-    Dim wsName As String
+    Dim tempBook As Workbook
+    Dim newSheet As Worksheet
 
     Application.ScreenUpdating = False
 
@@ -59,15 +60,26 @@ Sub ImportSheetsByFutaku()
             GoTo NextFile
         End If
 
-        ' 既に同名シートが存在すれば削除
+        ' コピー元シートを一時ブックにコピー
+        wbSource.Sheets(1).Copy
+        Set tempBook = ActiveWorkbook
+
+        ' 既存シート削除
         On Error Resume Next
         ThisWorkbook.Sheets(futakuMatch).Delete
         On Error GoTo 0
 
-        ' 先頭シートをコピーして命名
-        wbSource.Sheets(1).Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
-        ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count).Name = futakuMatch
+        ' 新シート作成と貼り付け
+        Set newSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        newSheet.Name = futakuMatch
+        tempBook.Sheets(1).Cells.Copy Destination:=newSheet.Cells(1, 1)
 
+        ' 一時ブックを閉じる
+        Application.DisplayAlerts = False
+        tempBook.Close SaveChanges:=False
+        Application.DisplayAlerts = True
+
+        ' 元ブックを閉じる
         wbSource.Close SaveChanges:=False
 
 NextFile:
