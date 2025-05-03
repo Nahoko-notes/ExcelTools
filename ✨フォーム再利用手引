@@ -1,0 +1,41 @@
+## 📌 UserForm（汎用処理待機画面）の使い方
+
+### 🧠 これは何？
+Excel VBAで「処理中です」と表示するシンプルなフォーム。
+Excelが固まったように見えるのを防ぎ、誤操作も防止。
+
+---
+
+### 🛠 使う準備（1回だけやればOK）
+
+1. VBEを開く（Alt + F11）
+2. 「挿入」→「ユーザーフォーム」を選択
+3. フォーム名：`ufProcessing` に変更
+4. ラベル追加 → 名前：`lblMessage`
+5. デザイン調整：
+
+| プロパティ | 値 |
+|------------|-----|
+| Caption    | 💫✨データを集計中です…✨💫 |
+| Font.Size  | 14 |
+| BackColor  | 紺（RGB 0,0,64） |
+| ForeColor  | 白（RGB 255,255,255） |
+| TextAlign  | 中央（fmTextAlignCenter） |
+
+---
+
+### 🧩 モジュールコード
+
+```vba
+Sub ShowProcessingMessage(msg As String)
+    With ufProcessing
+        .lblMessage.Caption = msg
+        .StartUpPosition = 1
+        .Show vbModeless
+    End With
+    DoEvents
+End Sub
+
+Sub CloseProcessingMessage()
+    Unload ufProcessing
+End Sub
