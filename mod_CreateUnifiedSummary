@@ -1,3 +1,4 @@
+option explicit
 Sub CreateUnifiedSummary()
     Dim wsDef As Worksheet
     Set wsDef = ThisWorkbook.Sheets("仕様_要件定義")
