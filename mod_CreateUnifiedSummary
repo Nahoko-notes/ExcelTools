@@ -1,0 +1,105 @@
+Sub CreateUnifiedSummary()
+    Dim wsDef As Worksheet
+    Set wsDef = ThisWorkbook.Sheets("仕様_要件定義")
+
+    Dim futakuList As Range, futakuCell As Range
+    Dim futakuNumbers() As String
+    Dim wsSrc As Worksheet, wsDest As Worksheet
+    Dim i As Long, j As Long, rowDest As Long
+    Dim lastRow As Long, r As Long
+    Dim specName As String, unitVal As Variant, qtyVal As Variant
+    Dim priceVal As Variant, totalVal As Variant, noteVal As Variant
+    Dim baseCell As String, concatName As String
+    Dim rowData As Variant
+
+    ' 付託No.一覧を取得（M5:M10）
+    Set futakuList = wsDef.Range("M5:M10")
+    ReDim futakuNumbers(1 To futakuList.Count)
+    i = 1
+    For Each futakuCell In futakuList
+        If Len(Trim(futakuCell.Value)) > 0 Then
+            futakuNumbers(i) = Trim(futakuCell.Value)
+            i = i + 1
+        End If
+    Next futakuCell
+
+    ' 既存の統合シート削除
+    Application.DisplayAlerts = False
+    On Error Resume Next
+    ThisWorkbook.Sheets("全体統合一覧").Delete
+    On Error GoTo 0
+    Application.DisplayAlerts = True
+
+    ' 新しい統合シート作成
+    Set wsDest = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
+    wsDest.Name = "全体統合一覧"
+
+    ' ヘッダー作成
+    With wsDest
+        .Range("A1:G1").Value = Array("参照元シート", "工事名称・仕様（階層付き）", "単位", "数量", "単価(円)", "金額(円)", "摘要")
+    End With
+    rowDest = 2
+
+    ' 各シート処理
+    For i = 1 To UBound(futakuNumbers)
+        Set wsSrc = Nothing
+        On Error Resume Next
+        Set wsSrc = ThisWorkbook.Sheets(futakuNumbers(i))
+        On Error GoTo 0
+
+        If Not wsSrc Is Nothing Then
+            lastRow = wsSrc.Cells(wsSrc.Rows.Count, "F").End(xlUp).Row
+
+            For r = 2 To lastRow
+                rowData = wsSrc.Range("F" & r & ":N" & r).Value
+
+                ' 工事名称が空ならスキップ
+                If Application.WorksheetFunction.CountA(wsSrc.Range("F" & r & ":N" & r)) = 0 Then
+                    GoTo SkipRow
+                End If
+
+                ' 階層を「＞」で連結（全角）
+                concatName = ""
+                For j = 1 To 7
+                    If rowData(1, j) <> "" Then
+                        If concatName <> "" Then concatName = concatName & "＞"
+                        concatName = concatName & rowData(1, j)
+                    End If
+                Next j
+
+                If concatName = "" Then GoTo SkipRow
+
+                ' セル位置追加（例：F18＞名称…）
+                baseCell = "F" & r
+                specName = baseCell & "＞" & concatName
+
+                ' その他の列
+                unitVal = wsSrc.Cells(r, "Q").Value
+                qtyVal = wsSrc.Cells(r, "R").Value
+                priceVal = wsSrc.Cells(r, "S").Value
+                totalVal = wsSrc.Cells(r, "T").Value
+                noteVal = wsSrc.Cells(r, "U").Value
+
+                ' 単価・金額がなければスキップ
+                If priceVal = "" And totalVal = "" Then GoTo SkipRow
+
+                ' 転記
+                With wsDest
+                    .Cells(rowDest, 1).Value = futakuNumbers(i)                ' A: 参照元シート名
+                    .Cells(rowDest, 2).Value = specName                       ' B: 工事名称・仕様
+                    .Cells(rowDest, 3).Value = unitVal                        ' C: 単位
+                    .Cells(rowDest, 4).Value = qtyVal                         ' D: 数量
+                    .Cells(rowDest, 5).Value = priceVal                       ' E: 単価
+                    .Cells(rowDest, 6).Value = totalVal                       ' F: 金額
+                    .Cells(rowDest, 7).Value = noteVal                        ' G: 摘要
+                End With
+
+                rowDest = rowDest + 1
+SkipRow:
+            Next r
+        End If
+    Next i
+
+    wsDest.Columns.AutoFit
+    MsgBox "全体統合一覧シートを作成しました！", vbInformation
+End Sub
