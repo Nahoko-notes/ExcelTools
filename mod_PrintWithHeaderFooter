@@ -1,3 +1,4 @@
+option explicit
 Sub PrintWithHeaderFooter()
     Dim ws As Worksheet
     Dim pcName As String
