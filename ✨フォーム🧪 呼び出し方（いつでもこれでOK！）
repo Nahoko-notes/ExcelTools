@@ -1,6 +1,6 @@
 Sub 任意の処理マクロ()
     Application.ScreenUpdating = False
-    ShowProcessingMessage "💫✨データを集計中です…✨💫"
+    ShowProcessingMessage "💫✨データを集計中です…✨💫" ' 絵文字が表示されないので、株式会社大都などで
 
     ' ここに処理を書く
     Call SomeProcess
