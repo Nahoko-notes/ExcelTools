@@ -1,0 +1,41 @@
+Option Explicit
+Public Sub EditLogger(sheetName As String)
+    Dim logSheet As Worksheet
+    Dim nextRow As Long
+    Dim uname As String
+    Dim timeStamp As String
+    
+    'ログ用シート名
+    Const LOG_SHEET As String = "編集履歴"
+    Const LOG_PASS As String = "Sakamoto1"
+    
+    uname = GetWindowsUserName()
+'    uname = Application.UserName
+    timeStamp = Format(Now, "yyyy/mm/dd hh:nn:ss")
+    
+    On Error Resume Next
+    
+    Set logSheet = ThisWorkbook.Sheets(LOG_SHEET)
+    On Error GoTo 0
+    If logSheet Is Nothing Then
+        MsgBox "ログ用シート「編集履歴」が存在しません。", vbCritical
+        Exit Sub
+    End If
+    
+    '▼▼▼ シート保護を一時解除 ▼▼▼
+    On Error Resume Next
+    logSheet.Unprotect Password:=LOG_PASS
+    On Error GoTo 0
+    
+    nextRow = logSheet.Cells(logSheet.Rows.Count, 1).End(xlUp).Row + 1
+    logSheet.Cells(nextRow, 1).Value = timeStamp
+    logSheet.Cells(nextRow, 2).Value = uname
+    logSheet.Cells(nextRow, 3).Value = sheetName & " を更新"
+    
+    '▲▲▲ 書き込んだらすぐ保護 ▲▲▲
+    logSheet.Protect Password:=LOG_PASS, AllowFormattingCells:=True
+End Sub
+
+Private Function GetWindowsUserName() As String
+    GetWindowsUserName = Environ("COMPUTERNAME")
+End Function
