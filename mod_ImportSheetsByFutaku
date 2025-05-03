@@ -60,16 +60,19 @@ Sub ImportSheetsByFutaku()
             GoTo NextFile
         End If
 
-        ' コピー元シートを一時ブックにコピー
-        wbSource.Sheets(1).Copy
-        Set tempBook = ActiveWorkbook
+        ' 一時ブックを手動で作成して中継コピー（安心設計）
+        Set tempBook = Workbooks.Add(xlWBATWorksheet)
+        wbSource.Sheets(1).Cells.Copy Destination:=tempBook.Sheets(1).Cells(1, 1)
 
-        ' 既存シート削除
+        ' 元ブックを閉じる
+        wbSource.Close SaveChanges:=False
+
+        ' 既存シート削除（上書きリフレッシュ対応）
         On Error Resume Next
         ThisWorkbook.Sheets(futakuMatch).Delete
         On Error GoTo 0
 
-        ' 新シート作成と貼り付け
+        ' 新しいシートを作成して中身を貼り付け
         Set newSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
         newSheet.Name = futakuMatch
         tempBook.Sheets(1).Cells.Copy Destination:=newSheet.Cells(1, 1)
@@ -78,9 +81,6 @@ Sub ImportSheetsByFutaku()
         Application.DisplayAlerts = False
         tempBook.Close SaveChanges:=False
         Application.DisplayAlerts = True
-
-        ' 元ブックを閉じる
-        wbSource.Close SaveChanges:=False
 
 NextFile:
     Next pathCell
