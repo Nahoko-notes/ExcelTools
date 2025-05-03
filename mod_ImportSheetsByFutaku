@@ -78,9 +78,11 @@ Sub ImportSheetsByFutaku()
         wbSource.Close SaveChanges:=False
 
         ' 既存シート削除（上書きリフレッシュ対応）
+        Application.DisplayAlerts = False
         On Error Resume Next
         ThisWorkbook.Sheets(futakuMatch).Delete
         On Error GoTo 0
+        Application.DisplayAlerts = True
 
         ' 新しいシートを作成して中身を貼り付け
         Set newSheet = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
