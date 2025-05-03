@@ -1,0 +1,11 @@
+Sub 任意の処理マクロ()
+    Application.ScreenUpdating = False
+    ShowProcessingMessage "💫✨データを集計中です…✨💫"
+
+    ' ここに処理を書く
+    Call SomeProcess
+
+    CloseProcessingMessage
+    Application.ScreenUpdating = True
+    MsgBox "完了しました", vbInformation
+End Sub
