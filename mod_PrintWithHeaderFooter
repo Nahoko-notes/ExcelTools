@@ -1,0 +1,17 @@
+Sub PrintWithHeaderFooter()
+    Dim ws As Worksheet
+    Dim pcName As String
+    Dim timeStamp As String
+    
+    Set ws = ActiveSheet
+    pcName = Environ("COMPUTERNAME")
+    timeStamp = Format(Now, "yyyy/mm/dd hh:mm:ss")
+    
+    With ws.PageSetup
+        .CenterHeader = "&""メイリオ,Bold""&18" & ActiveSheet.Name ' ヘッダー中央：シート名
+        .LeftFooter = "最終更新：" & pcName
+        .RightFooter = "印刷：" & timeStamp
+    End With
+    
+    ws.PrintPreview ' 印刷プレビュー（←.PrintOutにすれば即印刷）
+End Sub
