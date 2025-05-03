@@ -1,67 +1,69 @@
 Sub RenameLog()
-    Dim selectedFiles As Variant
-    Dim fso As Object
-    Dim i As Long
-    Dim filePath As String, folderPath As String, oldName As String, newName As String, newPath As String
-    Dim wsLog As Worksheet
-    Dim lastRow As Long
-    
-    ' NG文字と置換ルールの定義
-    Dim ngChars As Variant, replaceWith As Variant
-    ngChars = Array("/", ":", "*", "?", Chr(34), "<", ">", "|", "　", " ", vbLf, vbCr, Chr(39), Chr(160))
-    replaceWith = Array("", "", "", "", "", "", "", "", "", "_", "_", "", "", "", "")
+    Dim fileNames As Variant
+    Dim i As Long, j As Long
+    Dim oldPath As String, newPath As String
+    Dim fileNameOnly As String, folderPath As String
+    Dim logSheet As Worksheet
+    Dim timeStamp As String
 
-    Set fso = CreateObject("Scripting.FileSystemObject")
+    ' NG文字と置換先定義
+    Dim ngChars As Variant
+    Dim replaceWith As Variant
 
-    ' ファイル選択（複数可）
-    selectedFiles = Application.GetOpenFilename( _
-        FileFilter:="Excelファイル (*.xls;*.xlsx;*.xlsm;*.xlsb), *.xls;*.xlsx;*.xlsm;*.xlsb", _
-        Title:="リネーム対象のファイルを選んでください（複数選択OK）", MultiSelect:=True)
+    ngChars = Array("/", "\", ":", "*", "?", Chr(34), "<", ">", "|", "　", " ", vbLf, vbCr, Chr(39), Chr(160))
+    replaceWith = Array("_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "", "", "_", "_")
+
+    ' ファイル選択
+    fileNames = Application.GetOpenFilename("Excelファイル (*.xls*), *.xls*", , "リネーム対象のファイルを選択（複数OK）", , True)
 
     ' キャンセル時
-    If VarType(selectedFiles) = vbBoolean And selectedFiles = False Then
-        MsgBox "キャンセルされました。", vbInformation
+    If VarType(fileNames) = vbBoolean And fileNames = False Then
+        MsgBox "キャンセルされました", vbExclamation
         Exit Sub
     End If
 
-    ' ログシートの準備
+    ' ログ用シートを用意（無ければ作成）
     On Error Resume Next
-    Set wsLog = ThisWorkbook.Sheets("Rename_Log")
-    If wsLog Is Nothing Then
-        Set wsLog = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
-        wsLog.Name = "Rename_Log"
-        wsLog.Range("A1:D1").Value = Array("日時", "旧ファイル名", "新ファイル名", "変更されたか")
+    Set logSheet = ThisWorkbook.Sheets("リネームログ")
+    If logSheet Is Nothing Then
+        Set logSheet = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
+        logSheet.Name = "リネームログ"
+        logSheet.Range("A1:D1").Value = Array("旧ファイル名", "新ファイル名", "パス", "タイムスタンプ")
     End If
     On Error GoTo 0
 
-    ' 処理開始
-    For i = LBound(selectedFiles) To UBound(selectedFiles)
-        filePath = selectedFiles(i)
-        folderPath = fso.GetParentFolderName(filePath)
-        oldName = fso.GetFileName(filePath)
-        newName = oldName
+    timeStamp = Format(Now, "yyyy/mm/dd HH:MM:SS")
+
+    ' 複数ファイルループ
+    For i = LBound(fileNames) To UBound(fileNames)
+        oldPath = fileNames(i)
+        folderPath = Left(oldPath, InStrRev(oldPath, "\"))
+        fileNameOnly = Mid(oldPath, InStrRev(oldPath, "\") + 1)
+        newPath = fileNameOnly
 
         ' NG文字置換
-        Dim j As Long
         For j = LBound(ngChars) To UBound(ngChars)
-            newName = Replace(newName, ngChars(j), replaceWith(j))
+            newPath = Replace(newPath, ngChars(j), replaceWith(j))
         Next j
 
-        newPath = folderPath & "\" & newName
+        ' 完全パスに
+        newPath = folderPath & newPath
 
-        If filePath <> newPath Then
-            ' 上書き確認省略 → 即リネーム
-            Name filePath As newPath
-            MsgBox "リネームしました：" & vbCrLf & oldName & " → " & newName, vbInformation
+        ' 同名ファイルの存在チェック
+        If Dir(newPath) <> "" Then
+            MsgBox "同名ファイルが既にあります：" & vbCrLf & newPath, vbCritical
+        Else
+            Name oldPath As newPath
+
+            ' ログ書き込み
+            With logSheet
+                .Cells(.Rows.Count, 1).End(xlUp).Offset(1, 0).Value = fileNameOnly
+                .Cells(.Rows.Count, 1).End(xlUp).Offset(0, 1).Value = Mid(newPath, InStrRev(newPath, "\") + 1)
+                .Cells(.Rows.Count, 1).End(xlUp).Offset(0, 2).Value = newPath
+                .Cells(.Rows.Count, 1).End(xlUp).Offset(0, 3).Value = timeStamp
+            End With
         End If
-
-        ' ログ記録
-        lastRow = wsLog.Cells(wsLog.Rows.Count, "A").End(xlUp).Row + 1
-        wsLog.Cells(lastRow, 1).Value = Now
-        wsLog.Cells(lastRow, 2).Value = oldName
-        wsLog.Cells(lastRow, 3).Value = newName
-        wsLog.Cells(lastRow, 4).Value = IIf(oldName <> newName, "✔", "")
     Next i
 
-    MsgBox "すべてのファイルの処理が完了しました！", vbInformation
+    MsgBox "リネーム完了しました！", vbInformation
 End Sub
