@@ -1,104 +1,89 @@
 option explicit
-Sub CreateUnifiedSummary_FromSingleBook()
+Sub CreateUnifiedSummary_FromThisWorkbook()
 
-    Dim srcBook As Workbook
-    Dim srcSheet As Worksheet
     Dim tgtSheet As Worksheet
-    Dim filePath As Variant
+    Dim srcSheet As Worksheet
+    Dim sheetName As String
     Dim rowIndex As Long, outRow As Long
     Dim hierarchy(1 To 7) As String
     Dim cellRef(1 To 7) As String
     Dim i As Long, level As Long
     Dim colList As Variant: colList = Array("F", "G", "H", "I", "J", "K", "L")
+    Dim ws As Worksheet
 
-    ' ファイル選択
-    filePath = Application.GetOpenFilename("Excelファイル (*.xls*), *.xls*")
-    If filePath = False Then Exit Sub
-
-    ' ブック開く（読み取り専用で）
-    Set srcBook = Workbooks.Open(filePath, ReadOnly:=True)
-    Set srcSheet = srcBook.Sheets(1)  ' 先頭シート
-
-    ' 出力先シート準備
+    ' ① 全体統合一覧シートの削除と再作成
     On Error Resume Next
+    Application.DisplayAlerts = False
     Set tgtSheet = ThisWorkbook.Sheets("全体統合一覧")
-    If tgtSheet Is Nothing Then
-        Set tgtSheet = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
-        tgtSheet.Name = "全体統合一覧"
-        tgtSheet.Range("A1:H1").Value = Array("元シート名", "階層表記", "工事名称", "単位", "数量", "単価", "金額", "摘要")
-    End If
+    If Not tgtSheet Is Nothing Then tgtSheet.Delete
+    Application.DisplayAlerts = True
     On Error GoTo 0
 
-    outRow = tgtSheet.Cells(tgtSheet.Rows.Count, 1).End(xlUp).Row + 1
+    Set tgtSheet = ThisWorkbook.Sheets.Add(Before:=Sheets(1))
+    tgtSheet.Name = "全体統合一覧"
+    tgtSheet.Range("A1:H1").Value = Array("元シート名", "階層表記", "工事名称", "単位", "数量", "単価", "金額", "摘要")
+    outRow = 2
 
-    rowIndex = 2
-    Do While rowIndex <= srcSheet.Cells(srcSheet.Rows.Count, "F").End(xlUp).Row
+    ' ② ThisWorkbookから対象シートを探してループ（付託No.形式：8桁数字）
+    For Each ws In ThisWorkbook.Sheets
+        If ws.Name Like "########" Then
+            Set srcSheet = ws
+            sheetName = srcSheet.Name
+            rowIndex = 2
 
-        level = -1
-        Dim name As String: name = ""
-        Dim fullName As String: fullName = ""
-        Dim sheetName As String: sheetName = srcSheet.Name
+            Do While rowIndex <= srcSheet.Cells(srcSheet.Rows.Count, "F").End(xlUp).Row + 50
 
-        ' 空行チェック（工事名称が全て空ならスキップ）
-        Dim isEmpty As Boolean: isEmpty = True
-        For i = 0 To 6
-            If Trim(srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value) <> "" Then
-                isEmpty = False
-                Exit For
-            End If
-        Next i
-        If isEmpty Then
-            rowIndex = rowIndex + 1
-            GoTo SkipRow
+                level = -1
+                Dim name As String: name = ""
+                Dim fullName As String: fullName = ""
+
+                ' 工事名称の列から階層判断
+                For i = 0 To 6
+                    If Trim(srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value) <> "" Then
+                        level = i + 1
+                        name = srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value
+                        hierarchy(level) = name
+                        cellRef(level) = colList(i) & rowIndex
+                        ' 下位階層リセット
+                        Dim j As Long
+                        For j = level + 1 To 7
+                            hierarchy(j) = ""
+                            cellRef(j) = ""
+                        Next j
+                        Exit For
+                    End If
+                Next i
+
+                ' データ出力（階層が特定された行のみ）
+                If level > 0 Then
+                    fullName = ""
+                    For j = 1 To level - 1
+                        If cellRef(j) <> "" Then fullName = fullName & cellRef(j) & "＞"
+                    Next j
+                    If fullName <> "" Then
+                        fullName = fullName & name
+                    Else
+                        fullName = name
+                    End If
+
+                    ' 出力
+                    With tgtSheet
+                        .Cells(outRow, 1).Value = sheetName
+                        .Cells(outRow, 2).Value = fullName
+                        .Cells(outRow, 3).Value = name
+                        .Cells(outRow, 4).Value = srcSheet.Cells(rowIndex, "Q").Value
+                        .Cells(outRow, 5).Value = srcSheet.Cells(rowIndex, "R").Value
+                        .Cells(outRow, 6).Value = srcSheet.Cells(rowIndex, "S").Value
+                        .Cells(outRow, 7).Value = srcSheet.Cells(rowIndex, "T").Value
+                        .Cells(outRow, 8).Value = srcSheet.Cells(rowIndex, "U").Value
+                    End With
+                    outRow = outRow + 1
+                End If
+
+                rowIndex = rowIndex + 1
+            Loop
         End If
+    Next ws
 
-        ' 工事名称の列から階層判断
-        For i = 0 To 6
-            If Trim(srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value) <> "" Then
-                level = i + 1
-                name = srcSheet.Cells(rowIndex, Columns(colList(i)).Column).Value
-                hierarchy(level) = name
-                cellRef(level) = colList(i) & rowIndex
-                ' 下位階層をリセット
-                Dim j As Long
-                For j = level + 1 To 7
-                    hierarchy(j) = ""
-                    cellRef(j) = ""
-                Next j
-                Exit For
-            End If
-        Next i
-
-        ' 階層表記生成
-        If level > 0 Then
-            fullName = ""
-            For j = 1 To level - 1
-                If cellRef(j) <> "" Then fullName = fullName & cellRef(j) & "＞"
-            Next j
-            If fullName <> "" Then
-                fullName = fullName & name
-            Else
-                fullName = name  ' 最上位の場合はそのまま
-            End If
-
-            ' 出力
-            With tgtSheet
-                .Cells(outRow, 1).Value = sheetName
-                .Cells(outRow, 2).Value = fullName
-                .Cells(outRow, 3).Value = name
-                .Cells(outRow, 4).Value = srcSheet.Cells(rowIndex, "Q").Value
-                .Cells(outRow, 5).Value = srcSheet.Cells(rowIndex, "R").Value
-                .Cells(outRow, 6).Value = srcSheet.Cells(rowIndex, "S").Value
-                .Cells(outRow, 7).Value = srcSheet.Cells(rowIndex, "T").Value
-                .Cells(outRow, 8).Value = srcSheet.Cells(rowIndex, "U").Value
-            End With
-            outRow = outRow + 1
-        End If
-
-SkipRow:
-        rowIndex = rowIndex + 1
-    Loop
-
-    srcBook.Close False
-    MsgBox "統合完了！", vbInformation
+    MsgBox "全体統合一覧が作成されました！", vbInformation
 End Sub
