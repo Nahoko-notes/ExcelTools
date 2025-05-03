@@ -1,0 +1,72 @@
+Option Explicit
+Sub Importer()
+ Dim wbSrc As Workbook
+ Dim wsSrc As Worksheet
+ Dim filePath As String
+ Dim fileName As String
+ Dim i As Long
+ Dim futakuList As Variant
+ Dim futakuNo As Variant
+ Dim matchedNo As String
+ Dim todayStr As String
+ Dim found As Boolean
+ Dim lastRow As Long
+ 
+ ' 付託Noの定義
+ futakuList = Array("0183401", "0183402", "0183403", "0183501", "0183502", "0183503")
+ todayStr = Format(Date, "yyyymmdd")
+ Application.ScreenUpdating = False
+ 
+ ' L5:L10のファイル名を読み取り
+ With ThisWorkbook.Sheets("仕様_要件定義")
+    For i = 5 To 10
+        fileName = .Cells(i, "L").Value
+        ' 全角スペースをアンダースコアに置換
+        fileName = replaca(fileName, "　", "_")
+
+        If Trim(fileName) = "" Or IsError(fileName) Then GoTo SkipNext
+        
+        ' 安全処理（全角・改行・引用符など除去）
+        fileName = Replace(fileName, "　", "") ' 全角スペース
+        fileName = Replace(fileName, vbCrLf, "") ' 改行
+        fileName = Replace(fileName, """", "") 'ダブルクォーテーション
+
+        filePath = Application.GetOpenFilename( _
+            FileFilter:="Excelブック (*.xlsx), *.xlsx", _
+            Title:="【" & fileName & "】を選択してください")
+
+        If VarType(filePath) = vbBoolean And filePath = "false" Then
+            MsgBox "キャンセルされました：" & fileName, vbExclamation
+            GoTo SkipNext
+        End If
+        
+        'ファイル名に含まれる付託Noを探す
+        found = False
+        For Each futakuNo In futakuList
+            If InStr(fileName, futakuNo) > 0 Then
+                matchedNo = futakuNo
+                found = True
+                Exit For
+            End If
+        Next
+        
+        'ブックを開いて最初のシートをコピー
+        Set wbSrc = Workbooks.Open(filePath, ReadOnly:=True)
+        Set wsSrc = wbSrc.Sheets(1)
+        
+        wsSrc.Copy After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+        
+        'シート名変更
+        With ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count)
+            .Name = todayStr & "_" & matchedNo
+        End With
+        
+        wbSrc.Close SaveChanges:=False
+        
+SkipNext:
+        Next i
+    End With
+
+    Application.ScreenUpdating = True
+    MsgBox "読み込みが完了しました", vbInformation
+End Sub
