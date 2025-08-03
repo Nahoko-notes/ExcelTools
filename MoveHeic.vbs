@@ -1,11 +1,3 @@
-' ================================================
-'   [Created]: 2025-08-03
-'   [Purpose]: HEIC file organizer
-'   Scripted with love by Nahoko & Rodem XOXO
-'   Reliable | Practical | a bit cheeky
-'   Transforming bits into art, day and night!
-' ================================================
-
 Option Explicit
 
 Dim fso, currentFolder, heicFolder, file
