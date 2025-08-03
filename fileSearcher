@@ -1,0 +1,61 @@
+' ================================================ 
+'   🗓 Fecha de creación: 2025-08-03
+'   🛠 Propósito: 選択フォルダからファイルを検索
+'   Scripted with ❤️  by Nahoko ＆ Rodem XOXO
+'   ∴ Reliable ｜ Practical ｜ a bit cheeky ∵ 
+'   💻 ¡Transformando bits en arte, día y noche!
+' ================================================
+
+Option Explicit
+
+Dim shell, folder, folderPath, searchPattern, result
+Set shell = CreateObject("Shell.Application")
+
+' フォルダ選択ダイアログ
+Set folder = shell.BrowseForFolder(0, "📁 検索するフォルダを選んでね", 0, 0)
+If folder Is Nothing Then
+    WScript.Echo "❌ キャンセルされました"
+    WScript.Quit
+End If
+folderPath = folder.Self.Path
+
+' 検索パターンの入力（例：*.xlsx）
+searchPattern = InputBox("🔍 検索するファイル名（例：*.txt や 予算書*.xls）を入力してね", "検索ファイル名")
+If Trim(searchPattern) = "" Then
+    WScript.Echo "❌ ファイル名が未入力なので終了します"
+    WScript.Quit
+End If
+
+' 結果格納用
+result = ""
+
+' 再帰的に検索
+Call SearchFiles(folderPath, searchPattern)
+
+If result = "" Then
+    MsgBox "😿 該当ファイルが見つかりませんでした。", vbExclamation, "検索結果"
+Else
+    ' 結果を表示＆保存
+    Dim tempFile, fso, txtFile
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    tempFile = fso.GetSpecialFolder(2) & "\検索結果_" & Replace(Replace(Now, "/", "-"), ":", "-") & ".txt"
+    Set txtFile = fso.CreateTextFile(tempFile, True)
+    txtFile.Write result
+    txtFile.Close
+    MsgBox "✅ 検索結果をメモ帳で開きます。" & vbCrLf & vbCrLf & tempFile, vbInformation, "完了"
+    CreateObject("WScript.Shell").Run "notepad.exe """ & tempFile & """"
+End If
+
+' 再帰検索処理
+Sub SearchFiles(ByVal targetFolder, ByVal pattern)
+    Dim folder, file, subfolder, fso
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    For Each file In fso.GetFolder(targetFolder).Files
+        If LCase(file.Name) Like LCase(pattern) Then
+            result = result & file.Path & vbCrLf
+        End If
+    Next
+    For Each subfolder In fso.GetFolder(targetFolder).SubFolders
+        Call SearchFiles(subfolder.Path, pattern)
+    Next
+End Sub
