@@ -8,24 +8,11 @@
 
 Option Explicit
 
-' 再帰検索処理（先に定義する必要あり！）
-Sub SearchFiles(ByVal targetFolder, ByVal pattern)
-    Dim folder, file, subfolder, fso
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    For Each file In fso.GetFolder(targetFolder).Files
-        If LCase(file.Name) Like LCase(pattern) Then
-            result = result & file.Path & vbCrLf
-        End If
-    Next
-    For Each subfolder In fso.GetFolder(targetFolder).SubFolders
-        Call SearchFiles(subfolder.Path, pattern)
-    Next
-End Sub
-
-Dim shell, folder, folderPath, searchPattern, result
+Dim shell, folder, folderPath, searchKeyword, result, fso
 Set shell = CreateObject("Shell.Application")
+Set fso = CreateObject("Scripting.FileSystemObject")
 
-' フォルダ選択ダイアログ
+' 📁 フォルダ選択ダイアログ
 Set folder = shell.BrowseForFolder(0, "📁 検索するフォルダを選んでね", 0, 0)
 If folder Is Nothing Then
     WScript.Echo "❌ キャンセルされました"
@@ -33,25 +20,24 @@ If folder Is Nothing Then
 End If
 folderPath = folder.Self.Path
 
-' 検索パターンの入力（例：*.xlsx）
-searchPattern = InputBox("🔍 検索するファイル名（例：*.txt や 予算書*.xls）を入力してね", "検索ファイル名")
-If Trim(searchPattern) = "" Then
+' 🔍 検索キーワード入力
+searchKeyword = InputBox("🔍 検索するファイル名の一部を入力してね（例：お弁当、.xlsx）", "検索ファイル名")
+If Trim(searchKeyword) = "" Then
     WScript.Echo "❌ ファイル名が未入力なので終了します"
     WScript.Quit
 End If
 
-' 結果格納用
+' 検索結果を格納
 result = ""
 
-' 再帰的に検索
-Call SearchFiles(folderPath, searchPattern)
+' 🔁 再帰検索実行
+SearchFiles folderPath, searchKeyword
 
+' 結果処理
 If result = "" Then
     MsgBox "😿 該当ファイルが見つかりませんでした。", vbExclamation, "検索結果"
 Else
-    ' 結果を表示＆保存
-    Dim tempFile, fso, txtFile
-    Set fso = CreateObject("Scripting.FileSystemObject")
+    Dim tempFile, txtFile
     tempFile = fso.GetSpecialFolder(2) & "\検索結果_" & Replace(Replace(Now, "/", "-"), ":", "-") & ".txt"
     Set txtFile = fso.CreateTextFile(tempFile, True)
     txtFile.Write result
@@ -59,3 +45,16 @@ Else
     MsgBox "✅ 検索結果をメモ帳で開きます。" & vbCrLf & vbCrLf & tempFile, vbInformation, "完了"
     CreateObject("WScript.Shell").Run "notepad.exe """ & tempFile & """"
 End If
+
+' === 🧠 再帰ファイル検索サブルーチン ===
+Sub SearchFiles(ByVal targetFolder, ByVal keyword)
+    Dim file, subfolder
+    For Each file In fso.GetFolder(targetFolder).Files
+        If InStr(LCase(file.Name), LCase(keyword)) > 0 Then
+            result = result & file.Path & vbCrLf
+        End If
+    Next
+    For Each subfolder In fso.GetFolder(targetFolder).SubFolders
+        SearchFiles subfolder.Path, keyword
+    Next
+End Sub
