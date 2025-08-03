@@ -9,6 +9,8 @@
 Option Explicit
 
 Dim fso, currentFolder, heicFolder, file
+Dim baseName, ext, i, targetPath
+
 Set fso = CreateObject("Scripting.FileSystemObject")
 
 ' カレントフォルダ
@@ -25,7 +27,6 @@ End If
 ' フォルダ内のファイルを走査
 For Each file In fso.GetFolder(currentFolder).Files
     If LCase(fso.GetExtensionName(file.Name)) = "heic" Then
-        Dim baseName, ext, i, targetPath
         baseName = fso.GetBaseName(file.Name)
         ext = fso.GetExtensionName(file.Name)
         targetPath = heicFolder & "\" & file.Name
