@@ -1,10 +1,10 @@
-' ================================================ '
-'   🗓 Fecha de creación: 2025-08-03
-'   🛠 Propósito: HEICファイル整理
-'   Scripted with ❤️  by Nahoko ＆ Rodem XOXO
-'   ∴ Reliable ｜ Practical ｜ a bit cheeky ∵ 
-'   💻 ¡Transformando bits en arte, día y noche!
-' ================================================ '
+' ================================================
+'   [Created]: 2025-08-03
+'   [Purpose]: HEIC file organizer
+'   Scripted with love by Nahoko & Rodem XOXO
+'   Reliable | Practical | a bit cheeky
+'   Transforming bits into art, day and night!
+' ================================================
 
 Option Explicit
 
